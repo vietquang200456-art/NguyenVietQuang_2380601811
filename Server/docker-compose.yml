@@ -14,7 +14,31 @@ services:
       - "1433:1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
+    networks:
+      - app_network
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: learnltddexam-server:latest
+    container_name: learnltddexam_server
+    restart: unless-stopped
+    ports:
+      - "5057:5057"
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_URLS: "http://+:5057"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=ChildDevicesDB;User Id=sa;Password=YourStrong@Passw0rd;TrustServerCertificate=True;Encrypt=False;"
+    depends_on:
+      - sqlserver
+    networks:
+      - app_network
 
 volumes:
   sqlserver_data:
     name: learnltddexam_sqlserver_data
+
+networks:
+  app_network:
+    driver: bridge

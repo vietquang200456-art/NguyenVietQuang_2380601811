@@ -56,16 +56,18 @@ namespace Server.Services
                 throw new InvalidOperationException("Email đã được sử dụng");
             }
 
-            // Verify OTP if provided
-            if (!string.IsNullOrWhiteSpace(registerDto.Otp))
+            // Verify OTP (bắt buộc khi đăng ký)
+            if (string.IsNullOrWhiteSpace(registerDto.Otp))
             {
-                var cacheKey = $"otp_{normalizedEmail}";
-                if (!_memoryCache.TryGetValue(cacheKey, out string? storedOtp) || storedOtp != registerDto.Otp.Trim())
-                {
-                    throw new InvalidOperationException("Mã OTP không chính xác hoặc đã hết hạn");
-                }
-                _memoryCache.Remove(cacheKey);
+                throw new InvalidOperationException("Vui lòng nhập mã xác thực OTP đã được gửi đến email của bạn");
             }
+
+            var cacheKey = $"otp_{normalizedEmail}";
+            if (!_memoryCache.TryGetValue(cacheKey, out string? storedOtp) || storedOtp != registerDto.Otp.Trim())
+            {
+                throw new InvalidOperationException("Mã OTP không chính xác hoặc đã hết hạn");
+            }
+            _memoryCache.Remove(cacheKey);
 
             // Create new user
             var user = new User
@@ -102,9 +104,95 @@ namespace Server.Services
             };
         }
 
+        private async Task EnsureDefaultAccountsAsync()
+        {
+            var defaultAccounts = new[]
+            {
+                (Email: "anhjkr@gmail.com", LegacyUsername: "anhjkr", FullName: "Nguyễn Quang Hưng (User)", Role: UserRole.User),
+                (Email: "anhjkrr@gmail.com", LegacyUsername: "anhjkrr", FullName: "Nguyễn Quang Hưng (Staff)", Role: UserRole.Staff),
+                (Email: "anhjkrrr@gmail.com", LegacyUsername: "anhjkrrr", FullName: "Nguyễn Quang Hưng (Admin)", Role: UserRole.Admin),
+            };
+
+            bool changed = false;
+            foreach (var acc in defaultAccounts)
+            {
+                var existingByEmail = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Email.ToLower() == acc.Email);
+                var existingLegacy = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Email.ToLower() == acc.LegacyUsername);
+
+                if (existingByEmail == null && existingLegacy != null)
+                {
+                    existingLegacy.Email = acc.Email;
+                    existingByEmail = existingLegacy;
+                    changed = true;
+                }
+                else if (existingByEmail != null && existingLegacy != null && existingByEmail.Id != existingLegacy.Id)
+                {
+                    _context.Users.Remove(existingLegacy);
+                    changed = true;
+                }
+
+                if (existingByEmail == null)
+                {
+                    _context.Users.Add(new User
+                    {
+                        Email = acc.Email,
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword("Anhhung1@"),
+                        FullName = acc.FullName,
+                        PhoneNumber = "0901234567",
+                        Role = acc.Role,
+                        CreatedAt = DateTime.UtcNow,
+                        IsActive = true
+                    });
+                    changed = true;
+                }
+                else
+                {
+                    bool userUpdated = false;
+                    if (existingByEmail.Email != acc.Email)
+                    {
+                        existingByEmail.Email = acc.Email;
+                        userUpdated = true;
+                    }
+                    if (existingByEmail.Role != acc.Role)
+                    {
+                        existingByEmail.Role = acc.Role;
+                        userUpdated = true;
+                    }
+                    if (!existingByEmail.IsActive)
+                    {
+                        existingByEmail.IsActive = true;
+                        userUpdated = true;
+                    }
+                    if (!BCrypt.Net.BCrypt.Verify("Anhhung1@", existingByEmail.PasswordHash))
+                    {
+                        existingByEmail.PasswordHash = BCrypt.Net.BCrypt.HashPassword("Anhhung1@");
+                        userUpdated = true;
+                    }
+                    if (userUpdated)
+                    {
+                        existingByEmail.UpdatedAt = DateTime.UtcNow;
+                        changed = true;
+                    }
+                }
+            }
+
+            if (changed)
+            {
+                await _context.SaveChangesAsync();
+            }
+        }
+
         public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto)
         {
+            await EnsureDefaultAccountsAsync();
+
             var normalizedEmail = loginDto.Email.Trim().ToLower();
+            if (string.IsNullOrWhiteSpace(normalizedEmail) || !normalizedEmail.Contains('@'))
+            {
+                throw new UnauthorizedAccessException("Vui lòng đăng nhập bằng địa chỉ Email hợp lệ");
+            }
 
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
@@ -119,16 +207,18 @@ namespace Server.Services
                 throw new UnauthorizedAccessException("Tài khoản đã bị vô hiệu hóa");
             }
 
-            // Verify OTP if provided
-            if (!string.IsNullOrWhiteSpace(loginDto.Otp))
+            // Bắt buộc xác thực OTP khi đăng nhập
+            if (string.IsNullOrWhiteSpace(loginDto.Otp))
             {
-                var cacheKey = $"otp_{normalizedEmail}";
-                if (!_memoryCache.TryGetValue(cacheKey, out string? storedOtp) || storedOtp != loginDto.Otp.Trim())
-                {
-                    throw new UnauthorizedAccessException("Mã OTP không chính xác hoặc đã hết hạn");
-                }
-                _memoryCache.Remove(cacheKey);
+                throw new UnauthorizedAccessException("Vui lòng nhập mã xác thực OTP đã được gửi đến email của bạn");
             }
+
+            var cacheKey = $"otp_{normalizedEmail}";
+            if (!_memoryCache.TryGetValue(cacheKey, out string? storedOtp) || storedOtp != loginDto.Otp.Trim())
+            {
+                throw new UnauthorizedAccessException("Mã OTP không chính xác hoặc đã hết hạn");
+            }
+            _memoryCache.Remove(cacheKey);
 
             // Đảm bảo Role hợp lệ trong 3 Role (User, Staff, Admin), mặc định là User
             if (!Enum.IsDefined(typeof(UserRole), user.Role))
@@ -269,7 +359,13 @@ namespace Server.Services
 
         public async Task<bool> SendLoginOtpAsync(LoginDto loginDto)
         {
+            await EnsureDefaultAccountsAsync();
+
             var normalizedEmail = loginDto.Email.Trim().ToLower();
+            if (string.IsNullOrWhiteSpace(normalizedEmail) || !normalizedEmail.Contains('@'))
+            {
+                throw new UnauthorizedAccessException("Vui lòng nhập địa chỉ Email hợp lệ");
+            }
 
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail);
@@ -294,6 +390,7 @@ namespace Server.Services
             var cacheKey = $"otp_{normalizedEmail}";
 
             _memoryCache.Set(cacheKey, otp, TimeSpan.FromMinutes(5));
+            _logger.LogInformation("Đã tạo mã OTP cho {Email}: {Otp} (hiệu lực 5 phút)", normalizedEmail, otp);
 
             return await _emailService.SendOtpEmailAsync(normalizedEmail, otp);
         }
@@ -319,6 +416,7 @@ namespace Server.Services
 
         public async Task<List<UserDto>> GetAllUsersAsync()
         {
+            await EnsureDefaultAccountsAsync();
             var users = await _context.Users
                 .OrderByDescending(u => u.CreatedAt)
                 .ToListAsync();

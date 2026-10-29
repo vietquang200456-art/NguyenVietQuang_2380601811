@@ -3,61 +3,36 @@ SERVER_DIR = Server
 MOBILE_DIR = NguyenQuangHung
 DOCKER_COMPOSE_FILE = $(SERVER_DIR)/docker-compose.yml
 DOCKER_COMPOSE = docker compose -f $(DOCKER_COMPOSE_FILE)
+DOCKER_IMAGE_NAME = learnltddexam-server:latest
 
-.PHONY: all help setup clean \
-        up down restart logs ps docker-clean \
+.PHONY: all setup clean \
+        up up-db down restart logs ps docker-build docker-clean \
         server server-dev server-build server-clean db-migrate \
         mobile mobile-devices mobile-pub-get mobile-clean mobile-apk
 
-# Default target
-all: help
-
-help:
-	@echo "=================================================================="
-	@echo "                   LEARN LTDD EXAM - MAKEFILE                     "
-	@echo "=================================================================="
-	@echo " Docker (SQL Server):"
-	@echo "   make up            - Khởi động SQL Server qua Docker Compose"
-	@echo "   make down          - Dừng dịch vụ Docker SQL Server"
-	@echo "   make restart       - Khởi động lại Docker SQL Server"
-	@echo "   make logs          - Xem logs thời gian thực của Docker SQL Server"
-	@echo "   make ps            - Xem trạng thái các container Docker"
-	@echo "   make docker-clean  - Dừng container và xóa volume dữ liệu"
-	@echo ""
-	@echo " Server (.NET Web API):"
-	@echo "   make server        - Chạy Server backend"
-	@echo "   make server-dev    - Chạy Server backend với Hot Reload (dotnet watch)"
-	@echo "   make server-build  - Build Server backend"
-	@echo "   make server-clean  - Dọn dẹp build cache của Server"
-	@echo "   make db-migrate    - Cập nhật database EF Core migrations"
-	@echo ""
-	@echo " Mobile (Flutter):"
-	@echo "   make mobile        - Chạy ứng dụng Mobile Flutter"
-	@echo "   make mobile-devices- Kiểm tra danh sách thiết bị/máy ảo"
-	@echo "   make mobile-pub-get- Cài đặt/cập nhật flutter packages"
-	@echo "   make mobile-clean  - Dọn dẹp cache build của Flutter"
-	@echo "   make mobile-apk    - Build APK Android"
-	@echo ""
-	@echo " Chung:"
-	@echo "   make setup         - Cài đặt và restore dependencies cho toàn bộ dự án"
-	@echo "   make clean         - Dọn dẹp build cache của Server, Flutter và Docker"
-	@echo "=================================================================="
-
 # Docker Commands
+docker-build:
+	@echo "Đang build Docker image cho Server ($(DOCKER_IMAGE_NAME))..."
+	docker build -t $(DOCKER_IMAGE_NAME) $(SERVER_DIR)
+
 up:
-	@echo "Đang khởi động SQL Server (Docker Compose)..."
-	$(DOCKER_COMPOSE) up -d
+	@echo "Đang build và khởi động toàn bộ dịch vụ (SQL Server + Backend API)..."
+	$(DOCKER_COMPOSE) up -d --build
+
+up-db:
+	@echo "Đang khởi động riêng SQL Server (Docker Compose)..."
+	$(DOCKER_COMPOSE) up -d sqlserver
 
 down:
-	@echo "Đang dừng SQL Server (Docker Compose)..."
+	@echo "Đang dừng các dịch vụ Docker Compose..."
 	$(DOCKER_COMPOSE) down
 
 restart:
-	@echo "Đang khởi động lại SQL Server..."
+	@echo "Đang khởi động lại các dịch vụ Docker..."
 	$(DOCKER_COMPOSE) restart
 
 logs:
-	@echo "Đang theo dõi logs SQL Server..."
+	@echo "Đang theo dõi logs Docker Compose..."
 	$(DOCKER_COMPOSE) logs -f
 
 ps:

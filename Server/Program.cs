@@ -115,21 +115,13 @@ var app = builder.Build();
 // Configure the HTTP request pipeline
 app.UseMiddleware<ErrorHandlingMiddleware>();
 
-if (app.Environment.IsDevelopment())
+// Enable Swagger UI in all environments (Development & Production/Docker)
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Child Devices Management API V1");
-        c.RoutePrefix = string.Empty; // Swagger UI at root
-    });
-}
-
-// Disable HTTPS redirection in development to avoid issues with HTTP mobile/emulator clients
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Child Devices Management API V1");
+    c.RoutePrefix = string.Empty; // Swagger UI at root
+});
 
 app.UseCors("AllowAll");
 
@@ -138,14 +130,70 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Auto-migrate database on startup
+// Auto-migrate database on startup and seed 3 default role accounts
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     try
     {
         dbContext.Database.Migrate();
-        Console.WriteLine("Database migrated successfully");
+
+        var defaultUsers = new[]
+        {
+            (Email: "anhjkr@gmail.com", LegacyUsername: "anhjkr", FullName: "Nguyễn Quang Hưng (User)", Role: Server.Models.UserRole.User),
+            (Email: "anhjkrr@gmail.com", LegacyUsername: "anhjkrr", FullName: "Nguyễn Quang Hưng (Staff)", Role: Server.Models.UserRole.Staff),
+            (Email: "anhjkrrr@gmail.com", LegacyUsername: "anhjkrrr", FullName: "Nguyễn Quang Hưng (Admin)", Role: Server.Models.UserRole.Admin),
+        };
+
+        bool hasChanges = false;
+        foreach (var item in defaultUsers)
+        {
+            var existingByEmail = dbContext.Users.FirstOrDefault(u => u.Email.ToLower() == item.Email);
+            var existingLegacy = dbContext.Users.FirstOrDefault(u => u.Email.ToLower() == item.LegacyUsername);
+
+            if (existingByEmail == null && existingLegacy != null)
+            {
+                existingLegacy.Email = item.Email;
+                existingByEmail = existingLegacy;
+                hasChanges = true;
+            }
+            else if (existingByEmail != null && existingLegacy != null && existingByEmail.Id != existingLegacy.Id)
+            {
+                dbContext.Users.Remove(existingLegacy);
+                hasChanges = true;
+            }
+
+            if (existingByEmail == null)
+            {
+                dbContext.Users.Add(new Server.Models.User
+                {
+                    Email = item.Email,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Anhhung1@"),
+                    FullName = item.FullName,
+                    PhoneNumber = "0901234567",
+                    Role = item.Role,
+                    CreatedAt = DateTime.UtcNow,
+                    IsActive = true
+                });
+                hasChanges = true;
+            }
+            else if (existingByEmail.Email != item.Email || existingByEmail.Role != item.Role || !BCrypt.Net.BCrypt.Verify("Anhhung1@", existingByEmail.PasswordHash) || !existingByEmail.IsActive)
+            {
+                existingByEmail.Email = item.Email;
+                existingByEmail.Role = item.Role;
+                existingByEmail.PasswordHash = BCrypt.Net.BCrypt.HashPassword("Anhhung1@");
+                existingByEmail.IsActive = true;
+                existingByEmail.UpdatedAt = DateTime.UtcNow;
+                hasChanges = true;
+            }
+        }
+
+        if (hasChanges)
+        {
+            dbContext.SaveChanges();
+        }
+
+        Console.WriteLine("Database migrated and default accounts seeded successfully");
     }
     catch (Exception ex)
     {

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Server.Data;
 using Server.DTOs;
 using Server.Helpers;
@@ -83,24 +83,44 @@ namespace Server.Services
 
         public async Task<DeviceDto> CreateDeviceAsync(CreateDeviceDto createDto, int userId)
         {
-            if (!Enum.TryParse<DeviceCategory>(createDto.Category, out var category))
+            if (string.IsNullOrWhiteSpace(createDto.Name))
             {
-                throw new ArgumentException("Invalid category");
+                throw new ArgumentException("Tên thiết bị không được để trống");
+            }
+
+            if (!Enum.TryParse<DeviceCategory>(createDto.Category, true, out var category))
+            {
+                throw new ArgumentException("Danh mục thiết bị không hợp lệ");
+            }
+
+            if (createDto.Price < 0)
+            {
+                throw new ArgumentException("Giá thiết bị không được âm");
+            }
+
+            if (createDto.StockQuantity < 0)
+            {
+                throw new ArgumentException("Số lượng tồn kho không được âm");
+            }
+
+            if (createDto.MinAge < 0 || createDto.MaxAge < createDto.MinAge)
+            {
+                throw new ArgumentException("Độ tuổi tối đa phải lớn hơn hoặc bằng độ tuổi tối thiểu");
             }
 
             var device = new Device
             {
-                Name = createDto.Name,
-                Description = createDto.Description,
+                Name = createDto.Name.Trim(),
+                Description = createDto.Description?.Trim(),
                 Category = category,
                 Price = createDto.Price,
-                Brand = createDto.Brand,
-                ModelNumber = createDto.ModelNumber,
-                ImageUrl = createDto.ImageUrl,
+                Brand = createDto.Brand?.Trim(),
+                ModelNumber = createDto.ModelNumber?.Trim(),
+                ImageUrl = string.IsNullOrWhiteSpace(createDto.ImageUrl) ? null : createDto.ImageUrl.Trim(),
                 StockQuantity = createDto.StockQuantity,
                 MinAge = createDto.MinAge,
                 MaxAge = createDto.MaxAge,
-                IsAvailable = true,
+                IsAvailable = createDto.StockQuantity > 0,
                 CreatedBy = userId,
                 CreatedAt = DateTime.UtcNow
             };
@@ -119,40 +139,68 @@ namespace Server.Services
 
             if (device == null)
             {
-                throw new KeyNotFoundException("Device not found");
+                throw new KeyNotFoundException("Không tìm thấy thiết bị");
             }
 
             // Update fields if provided
             if (!string.IsNullOrWhiteSpace(updateDto.Name))
-                device.Name = updateDto.Name;
+                device.Name = updateDto.Name.Trim();
 
             if (updateDto.Description != null)
-                device.Description = updateDto.Description;
+                device.Description = updateDto.Description.Trim();
 
-            if (!string.IsNullOrWhiteSpace(updateDto.Category) && 
-                Enum.TryParse<DeviceCategory>(updateDto.Category, out var category))
+            if (!string.IsNullOrWhiteSpace(updateDto.Category))
+            {
+                if (!Enum.TryParse<DeviceCategory>(updateDto.Category, true, out var category))
+                {
+                    throw new ArgumentException("Danh mục thiết bị không hợp lệ");
+                }
                 device.Category = category;
+            }
 
             if (updateDto.Price.HasValue)
+            {
+                if (updateDto.Price.Value < 0)
+                {
+                    throw new ArgumentException("Giá thiết bị không được âm");
+                }
                 device.Price = updateDto.Price.Value;
+            }
 
             if (updateDto.Brand != null)
-                device.Brand = updateDto.Brand;
+                device.Brand = updateDto.Brand.Trim();
 
             if (updateDto.ModelNumber != null)
-                device.ModelNumber = updateDto.ModelNumber;
+                device.ModelNumber = updateDto.ModelNumber.Trim();
 
             if (updateDto.ImageUrl != null)
-                device.ImageUrl = updateDto.ImageUrl;
+                device.ImageUrl = string.IsNullOrWhiteSpace(updateDto.ImageUrl) ? null : updateDto.ImageUrl.Trim();
 
             if (updateDto.StockQuantity.HasValue)
+            {
+                if (updateDto.StockQuantity.Value < 0)
+                {
+                    throw new ArgumentException("Số lượng tồn kho không được âm");
+                }
                 device.StockQuantity = updateDto.StockQuantity.Value;
+            }
 
             if (updateDto.MinAge.HasValue)
+            {
+                if (updateDto.MinAge.Value < 0)
+                {
+                    throw new ArgumentException("Độ tuổi tối thiểu không được âm");
+                }
                 device.MinAge = updateDto.MinAge.Value;
+            }
 
             if (updateDto.MaxAge.HasValue)
                 device.MaxAge = updateDto.MaxAge.Value;
+
+            if (device.MaxAge < device.MinAge)
+            {
+                throw new ArgumentException("Độ tuổi tối đa phải lớn hơn hoặc bằng độ tuổi tối thiểu");
+            }
 
             if (updateDto.IsAvailable.HasValue)
                 device.IsAvailable = updateDto.IsAvailable.Value;
@@ -166,11 +214,24 @@ namespace Server.Services
 
         public async Task<bool> DeleteDeviceAsync(int id, int userId)
         {
-            var device = await _context.Devices.FindAsync(id);
+            var device = await _context.Devices
+                .Include(d => d.OrderItems)
+                .Include(d => d.Reviews)
+                .FirstOrDefaultAsync(d => d.Id == id);
 
             if (device == null)
             {
                 return false;
+            }
+
+            if (device.OrderItems.Any())
+            {
+                _context.OrderItems.RemoveRange(device.OrderItems);
+            }
+
+            if (device.Reviews.Any())
+            {
+                _context.Reviews.RemoveRange(device.Reviews);
             }
 
             _context.Devices.Remove(device);
