@@ -58,6 +58,61 @@ namespace Server.Controllers
         }
 
         /// <summary>
+        /// Đăng nhập hoặc Đăng ký tài khoản bằng Google
+        /// </summary>
+        [HttpPost("google")]
+        [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GoogleLogin([FromBody] GoogleAuthDto googleDto)
+        {
+            try
+            {
+                var result = await _authService.GoogleAuthAsync(googleDto);
+                var message = result.IsNewUser
+                    ? "Đăng ký và đăng nhập bằng Google thành công"
+                    : "Đăng nhập bằng Google thành công";
+                return Ok(ApiResponse<AuthResponseDto>.SuccessResponse(result, message));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ApiResponse<object>.ErrorResponse(ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(ApiResponse<object>.ErrorResponse(ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Kiểm tra thông tin đăng nhập (Email & Mật khẩu) và gửi mã OTP qua Email
+        /// </summary>
+        [HttpPost("send-login-otp")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> SendLoginOtp([FromBody] LoginDto loginDto)
+        {
+            try
+            {
+                var sent = await _authService.SendLoginOtpAsync(loginDto);
+                if (sent)
+                {
+                    return Ok(ApiResponse<object>.SuccessResponse(new { email = loginDto.Email }, "Mã OTP đăng nhập đã được gửi đến email của bạn"));
+                }
+                return BadRequest(ApiResponse<object>.ErrorResponse("Không thể gửi email OTP, vui lòng kiểm tra lại địa chỉ email"));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(ApiResponse<object>.ErrorResponse(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.ErrorResponse(ex.Message));
+            }
+        }
+
+        /// <summary>
         /// Gửi mã xác thực OTP qua Email
         /// </summary>
         [HttpPost("send-otp")]
@@ -119,6 +174,38 @@ namespace Server.Controllers
             }
 
             return Ok(ApiResponse<UserDto>.SuccessResponse(user));
+        }
+
+        /// <summary>
+        /// Lấy danh sách tất cả người dùng (Admin)
+        /// </summary>
+        [HttpGet("users")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(ApiResponse<List<UserDto>>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            var users = await _authService.GetAllUsersAsync();
+            return Ok(ApiResponse<List<UserDto>>.SuccessResponse(users));
+        }
+
+        /// <summary>
+        /// Cập nhật vai trò (ADMIN, STAFF, USER) cho người dùng
+        /// </summary>
+        [HttpPut("users/{id}/role")]
+        [Authorize]
+        [ProducesResponseType(typeof(ApiResponse<UserDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateUserRole(int id, [FromBody] UpdateUserRoleDto dto)
+        {
+            try
+            {
+                var updatedUser = await _authService.UpdateUserRoleAsync(id, dto.Role);
+                return Ok(ApiResponse<UserDto>.SuccessResponse(updatedUser, $"Đã cập nhật Role thành {updatedUser.Role}"));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.ErrorResponse(ex.Message));
+            }
         }
     }
 }

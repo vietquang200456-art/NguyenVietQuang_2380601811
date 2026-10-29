@@ -133,8 +133,8 @@ namespace Server.Services
                             <h1>Child Devices Management</h1>
                         </div>
                         <div class='content'>
-                            <h2>Mã Xác Thực Đăng Ký</h2>
-                            <p>Bạn đang đăng ký tài khoản tại Child Devices Management.</p>
+                            <h2>Mã Xác Thực OTP</h2>
+                            <p>Bạn đang thực hiện xác thực tài khoản (Đăng nhập / Đăng ký) tại <strong>Child Devices Management</strong>.</p>
                             <p>Vui lòng nhập mã OTP sau để hoàn tất quá trình xác thực:</p>
                             <div class='otp-box'>{otp}</div>
                             <p>Mã này có hiệu lực trong <strong>5 phút</strong>. Vui lòng không chia sẻ mã này cho bất kỳ ai.</p>

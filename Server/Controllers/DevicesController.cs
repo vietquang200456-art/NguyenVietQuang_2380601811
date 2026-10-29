@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Server.DTOs;
 using Server.Helpers;
@@ -54,10 +54,10 @@ namespace Server.Controllers
         }
 
         /// <summary>
-        /// Create a new device (Admin only)
+        /// Create a new device (Admin and Staff)
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Staff")]
         [ProducesResponseType(typeof(ApiResponse<DeviceDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -82,10 +82,10 @@ namespace Server.Controllers
         }
 
         /// <summary>
-        /// Update device (Admin only)
+        /// Update device (Admin and Staff)
         /// </summary>
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Staff")]
         [ProducesResponseType(typeof(ApiResponse<DeviceDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]

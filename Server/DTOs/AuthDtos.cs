@@ -10,6 +10,8 @@ namespace Server.DTOs
 
         [Required(ErrorMessage = "Mật khẩu là bắt buộc")]
         public string Password { get; set; } = string.Empty;
+
+        public string? Otp { get; set; }
     }
 
     public class RegisterDto
@@ -53,13 +55,34 @@ namespace Server.DTOs
         public string Email { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public string? PhoneNumber { get; set; }
-        public string Role { get; set; } = string.Empty;
+        public string Role { get; set; } = "User";
         public DateTime CreatedAt { get; set; }
+        public string? Token { get; set; }
+    }
+
+    public class UpdateUserRoleDto
+    {
+        [Required(ErrorMessage = "Role là bắt buộc")]
+        public string Role { get; set; } = "User";
+    }
+
+    public class GoogleAuthDto
+    {
+        public string? IdToken { get; set; }
+        public string? AccessToken { get; set; }
+
+        [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
+        public string? Email { get; set; }
+
+        public string? FullName { get; set; }
+        public string? GoogleId { get; set; }
+        public string? PhotoUrl { get; set; }
     }
 
     public class AuthResponseDto
     {
         public string Token { get; set; } = string.Empty;
         public UserDto User { get; set; } = null!;
+        public bool IsNewUser { get; set; }
     }
 }

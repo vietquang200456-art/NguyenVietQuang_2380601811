@@ -53,7 +53,7 @@ builder.Services.AddScoped<IDeviceService, DeviceService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IEmailService, ResendEmailService>();
-builder.Services.AddScoped<IVideoCallService, LiveKitService>();
+builder.Services.AddSingleton<IVideoCallService, LiveKitService>();
 builder.Services.AddHttpClient<ResendEmailService>();
 builder.Services.AddScoped<JwtHelper>();
 

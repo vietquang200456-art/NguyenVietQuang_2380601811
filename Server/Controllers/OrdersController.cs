@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Server.DTOs;
 using Server.Helpers;
@@ -39,8 +39,8 @@ namespace Server.Controllers
                 return Unauthorized(ApiResponse<object>.ErrorResponse("Invalid token"));
             }
 
-            // Admin can see all orders, users can only see their own
-            int? filterUserId = userRole == "Admin" ? null : userId.Value;
+            // Admin and Staff can see all orders, users can only see their own
+            int? filterUserId = (userRole == "Admin" || userRole == "Staff") ? null : userId.Value;
 
             var result = await _orderService.GetOrdersAsync(pageNumber, pageSize, filterUserId, status);
             return Ok(ApiResponse<PagedResponse<OrderDto>>.SuccessResponse(result));
@@ -63,7 +63,7 @@ namespace Server.Controllers
                 return Unauthorized(ApiResponse<object>.ErrorResponse("Invalid token"));
             }
 
-            var order = await _orderService.GetOrderByIdAsync(id, userId.Value, userRole == "Admin");
+            var order = await _orderService.GetOrderByIdAsync(id, userId.Value, userRole == "Admin" || userRole == "Staff");
             if (order == null)
             {
                 return NotFound(ApiResponse<object>.ErrorResponse("Order not found"));
@@ -104,10 +104,10 @@ namespace Server.Controllers
         }
 
         /// <summary>
-        /// Update order status (Admin only)
+        /// Update order status (Admin and Staff)
         /// </summary>
         [HttpPatch("{id}/status")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Staff")]
         [ProducesResponseType(typeof(ApiResponse<OrderDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
