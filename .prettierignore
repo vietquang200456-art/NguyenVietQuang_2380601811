@@ -1,0 +1,25 @@
+# Git & dependencies
+.git/
+node_modules/
+
+# C# / .NET
+**/bin/
+**/obj/
+**/Migrations/
+**/*.csproj
+**/*.sln
+**/*.user
+**/*.cs
+
+# Dart / Flutter
+**/.dart_tool/
+**/build/
+**/.flutter-plugins*
+**/android/
+**/ios/
+**/linux/
+**/macos/
+**/windows/
+**/web/
+**/*.dart
+pubspec.lock

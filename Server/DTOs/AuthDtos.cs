@@ -1,24 +1,55 @@
-﻿namespace Server.DTOs
+using System.ComponentModel.DataAnnotations;
+
+namespace Server.DTOs
 {
     public class LoginDto
     {
-        public string Username { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Email là bắt buộc")]
+        [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Mật khẩu là bắt buộc")]
         public string Password { get; set; } = string.Empty;
     }
 
     public class RegisterDto
     {
-        public string Username { get; set; } = string.Empty;
+        [Required(ErrorMessage = "Email là bắt buộc")]
+        [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
         public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Mật khẩu là bắt buộc")]
+        [MinLength(6, ErrorMessage = "Mật khẩu tối thiểu 6 ký tự")]
         public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Họ và tên là bắt buộc")]
         public string FullName { get; set; } = string.Empty;
+
         public string? PhoneNumber { get; set; }
+
+        public string? Otp { get; set; }
+    }
+
+    public class SendOtpDto
+    {
+        [Required(ErrorMessage = "Email là bắt buộc")]
+        [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
+        public string Email { get; set; } = string.Empty;
+    }
+
+    public class VerifyOtpDto
+    {
+        [Required(ErrorMessage = "Email là bắt buộc")]
+        [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Mã OTP là bắt buộc")]
+        public string Otp { get; set; } = string.Empty;
     }
 
     public class UserDto
     {
         public int Id { get; set; }
-        public string Username { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public string? PhoneNumber { get; set; }

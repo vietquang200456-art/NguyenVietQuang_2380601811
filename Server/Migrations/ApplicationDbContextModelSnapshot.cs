@@ -17,7 +17,7 @@ namespace Server.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.0")
+                .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -90,7 +90,7 @@ namespace Server.Migrations
                             Id = 1,
                             Brand = "Kiddo",
                             Category = 4,
-                            CreatedAt = new DateTime(2026, 10, 29, 6, 34, 28, 396, DateTimeKind.Utc).AddTicks(5683),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             CreatedBy = 1,
                             Description = "Đồng hồ thông minh với GPS, gọi điện, camera và theo dõi sức khỏe",
                             ImageUrl = "https://example.com/images/kiddo-watch.jpg",
@@ -107,7 +107,7 @@ namespace Server.Migrations
                             Id = 2,
                             Brand = "Samsung",
                             Category = 5,
-                            CreatedAt = new DateTime(2026, 10, 29, 6, 34, 28, 396, DateTimeKind.Utc).AddTicks(5775),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             CreatedBy = 1,
                             Description = "Máy tính bảng chuyên dụng cho trẻ em với nội dung giáo dục phong phú",
                             ImageUrl = "https://example.com/images/samsung-kids-tab.jpg",
@@ -124,7 +124,7 @@ namespace Server.Migrations
                             Id = 3,
                             Brand = "CodeBot",
                             Category = 0,
-                            CreatedAt = new DateTime(2026, 10, 29, 6, 34, 28, 396, DateTimeKind.Utc).AddTicks(5777),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             CreatedBy = 1,
                             Description = "Robot thông minh giúp trẻ học lập trình cơ bản qua trò chơi",
                             ImageUrl = "https://example.com/images/codebot.jpg",
@@ -141,7 +141,7 @@ namespace Server.Migrations
                             Id = 4,
                             Brand = "SafeBaby",
                             Category = 3,
-                            CreatedAt = new DateTime(2026, 10, 29, 6, 34, 28, 396, DateTimeKind.Utc).AddTicks(5810),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             CreatedBy = 1,
                             Description = "Camera theo dõi em bé với tính năng xem qua điện thoại, cảnh báo khóc",
                             ImageUrl = "https://example.com/images/safebaby-monitor.jpg",
@@ -158,7 +158,7 @@ namespace Server.Migrations
                             Id = 5,
                             Brand = "KidTracker",
                             Category = 2,
-                            CreatedAt = new DateTime(2026, 10, 29, 6, 34, 28, 396, DateTimeKind.Utc).AddTicks(5812),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             CreatedBy = 1,
                             Description = "Thiết bị định vị GPS nhỏ gọn, pin dùng lâu, chống nước",
                             ImageUrl = "https://example.com/images/kidtracker.jpg",
@@ -329,17 +329,9 @@ namespace Server.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Username")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
-                        .IsUnique();
-
-                    b.HasIndex("Username")
                         .IsUnique();
 
                     b.ToTable("Users");
@@ -348,14 +340,13 @@ namespace Server.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2026, 10, 29, 6, 34, 28, 395, DateTimeKind.Utc).AddTicks(6919),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Email = "admin@childdevices.com",
                             FullName = "System Administrator",
                             IsActive = true,
                             PasswordHash = "$2a$11$E4yLWh8ERMtFqxt9F9y6teKsTS3TBOA2xk5QBEtkL6fi.nfHx9TZC",
                             PhoneNumber = "0123456789",
-                            Role = 1,
-                            Username = "admin"
+                            Role = 1
                         });
                 });
 

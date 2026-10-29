@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Server.DTOs;
 using Server.Helpers;
@@ -20,7 +20,7 @@ namespace Server.Controllers
         }
 
         /// <summary>
-        /// Register a new user
+        /// Đăng ký tài khoản mới qua Email
         /// </summary>
         [HttpPost("register")]
         [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status200OK)]
@@ -30,7 +30,7 @@ namespace Server.Controllers
             try
             {
                 var result = await _authService.RegisterAsync(registerDto);
-                return Ok(ApiResponse<AuthResponseDto>.SuccessResponse(result, "Registration successful"));
+                return Ok(ApiResponse<AuthResponseDto>.SuccessResponse(result, "Đăng ký thành công"));
             }
             catch (InvalidOperationException ex)
             {
@@ -39,7 +39,7 @@ namespace Server.Controllers
         }
 
         /// <summary>
-        /// Login
+        /// Đăng nhập tài khoản qua Email và Mật khẩu
         /// </summary>
         [HttpPost("login")]
         [ProducesResponseType(typeof(ApiResponse<AuthResponseDto>), StatusCodes.Status200OK)]
@@ -49,7 +49,7 @@ namespace Server.Controllers
             try
             {
                 var result = await _authService.LoginAsync(loginDto);
-                return Ok(ApiResponse<AuthResponseDto>.SuccessResponse(result, "Login successful"));
+                return Ok(ApiResponse<AuthResponseDto>.SuccessResponse(result, "Đăng nhập thành công"));
             }
             catch (UnauthorizedAccessException ex)
             {
@@ -58,7 +58,47 @@ namespace Server.Controllers
         }
 
         /// <summary>
-        /// Get current user profile
+        /// Gửi mã xác thực OTP qua Email
+        /// </summary>
+        [HttpPost("send-otp")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> SendOtp([FromBody] SendOtpDto sendOtpDto)
+        {
+            try
+            {
+                var sent = await _authService.SendOtpAsync(sendOtpDto.Email);
+                if (sent)
+                {
+                    return Ok(ApiResponse<object>.SuccessResponse(new { email = sendOtpDto.Email }, "Mã OTP đã được gửi đến email của bạn"));
+                }
+                return BadRequest(ApiResponse<object>.ErrorResponse("Không thể gửi email OTP, vui lòng kiểm tra lại địa chỉ email"));
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ApiResponse<object>.ErrorResponse(ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Xác thực mã OTP
+        /// </summary>
+        [HttpPost("verify-otp")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpDto verifyOtpDto)
+        {
+            var isValid = await _authService.VerifyOtpAsync(verifyOtpDto.Email, verifyOtpDto.Otp);
+            if (isValid)
+            {
+                return Ok(ApiResponse<object>.SuccessResponse(new { valid = true }, "Mã OTP hợp lệ"));
+            }
+
+            return BadRequest(ApiResponse<object>.ErrorResponse("Mã OTP không chính xác hoặc đã hết hạn"));
+        }
+
+        /// <summary>
+        /// Lấy thông tin tài khoản hiện tại
         /// </summary>
         [HttpGet("me")]
         [Authorize]
@@ -69,13 +109,13 @@ namespace Server.Controllers
             var userId = _jwtHelper.GetUserIdFromToken(User);
             if (userId == null)
             {
-                return Unauthorized(ApiResponse<object>.ErrorResponse("Invalid token"));
+                return Unauthorized(ApiResponse<object>.ErrorResponse("Token không hợp lệ"));
             }
 
             var user = await _authService.GetUserByIdAsync(userId.Value);
             if (user == null)
             {
-                return NotFound(ApiResponse<object>.ErrorResponse("User not found"));
+                return NotFound(ApiResponse<object>.ErrorResponse("Người dùng không tồn tại"));
             }
 
             return Ok(ApiResponse<UserDto>.SuccessResponse(user));

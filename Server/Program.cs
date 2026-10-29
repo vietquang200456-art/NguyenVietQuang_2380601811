@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -10,8 +10,12 @@ using Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure listening URL
+builder.WebHost.UseUrls("http://0.0.0.0:5057");
+
 // Add services to the container
 builder.Services.AddControllers();
+builder.Services.AddMemoryCache();
 
 // Configure DbContext
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -72,11 +76,11 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "Child Devices Management API",
         Version = "v1",
-        Description = "API quản lý thiết bị trẻ em - Đồ án giữa kỳ Lập trình di động",
+        Description = "API quản lý thiết bị trẻ em - Đăng ký & Đăng nhập hoàn toàn qua Email",
         Contact = new OpenApiContact
         {
-            Name = "Nguyen Viet Quang",
-            Email = "quang@example.com"
+            Name = "Child Devices Team",
+            Email = "support@zeion.online"
         }
     });
 
@@ -121,7 +125,11 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-app.UseHttpsRedirection();
+// Disable HTTPS redirection in development to avoid issues with HTTP mobile/emulator clients
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("AllowAll");
 
@@ -146,4 +154,3 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
-

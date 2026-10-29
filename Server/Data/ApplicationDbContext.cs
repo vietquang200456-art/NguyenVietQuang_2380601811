@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Server.Models;
 
 namespace Server.Data
@@ -32,9 +32,7 @@ namespace Server.Data
             modelBuilder.Entity<User>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.HasIndex(e => e.Username).IsUnique();
                 entity.HasIndex(e => e.Email).IsUnique();
-                entity.Property(e => e.Username).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.PasswordHash).IsRequired();
                 entity.Property(e => e.FullName).IsRequired().HasMaxLength(100);
@@ -125,13 +123,12 @@ namespace Server.Data
                 new User
                 {
                     Id = 1,
-                    Username = "admin",
                     Email = "admin@childdevices.com",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+                    PasswordHash = "$2a$11$E4yLWh8ERMtFqxt9F9y6teKsTS3TBOA2xk5QBEtkL6fi.nfHx9TZC",
                     FullName = "System Administrator",
                     PhoneNumber = "0123456789",
                     Role = UserRole.Admin,
-                    CreatedAt = DateTime.UtcNow,
+                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                     IsActive = true
                 }
             );
@@ -153,7 +150,7 @@ namespace Server.Data
                     MaxAge = 12,
                     IsAvailable = true,
                     CreatedBy = 1,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 },
                 new Device
                 {
@@ -170,7 +167,7 @@ namespace Server.Data
                     MaxAge = 14,
                     IsAvailable = true,
                     CreatedBy = 1,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 },
                 new Device
                 {
@@ -187,7 +184,7 @@ namespace Server.Data
                     MaxAge = 15,
                     IsAvailable = true,
                     CreatedBy = 1,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 },
                 new Device
                 {
@@ -204,7 +201,7 @@ namespace Server.Data
                     MaxAge = 5,
                     IsAvailable = true,
                     CreatedBy = 1,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 },
                 new Device
                 {
@@ -221,10 +218,9 @@ namespace Server.Data
                     MaxAge = 12,
                     IsAvailable = true,
                     CreatedBy = 1,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 }
             );
         }
     }
 }
-
