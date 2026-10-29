@@ -54,6 +54,7 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IEmailService, ResendEmailService>();
 builder.Services.AddSingleton<IVideoCallService, LiveKitService>();
+builder.Services.AddSingleton<ILocationService, LocationService>();
 builder.Services.AddHttpClient<ResendEmailService>();
 builder.Services.AddScoped<JwtHelper>();
 

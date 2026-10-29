@@ -108,6 +108,18 @@ namespace Server.Services
                 throw new ArgumentException("Độ tuổi tối đa phải lớn hơn hoặc bằng độ tuổi tối thiểu");
             }
 
+            var userExists = await _context.Users.AnyAsync(u => u.Id == userId);
+            if (!userExists)
+            {
+                var fallbackUser = await _context.Users
+                    .OrderByDescending(u => u.Role == UserRole.Admin)
+                    .FirstOrDefaultAsync();
+                if (fallbackUser != null)
+                {
+                    userId = fallbackUser.Id;
+                }
+            }
+
             var device = new Device
             {
                 Name = createDto.Name.Trim(),

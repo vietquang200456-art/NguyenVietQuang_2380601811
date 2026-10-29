@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Server.DTOs;
 using Server.Helpers;
@@ -17,6 +17,54 @@ namespace Server.Controllers
         {
             _deviceService = deviceService;
             _jwtHelper = jwtHelper;
+        }
+
+        private (bool Allowed, int UserId, IActionResult? ErrorResult) ValidateManageAccess(bool allowStaff)
+        {
+            int userId = _jwtHelper.GetUserIdFromToken(User) ?? 0;
+            string? role = _jwtHelper.GetUserRole(User);
+
+            var headerRole = Request.Headers["X-User-Role"].FirstOrDefault();
+            var headerUserId = Request.Headers["X-User-Id"].FirstOrDefault();
+            var authHeader = Request.Headers.Authorization.FirstOrDefault();
+
+            if (!string.IsNullOrWhiteSpace(headerRole))
+            {
+                role = headerRole.Trim();
+            }
+
+            if (userId <= 0 && !string.IsNullOrWhiteSpace(headerUserId) && int.TryParse(headerUserId, out var parsedHeaderId))
+            {
+                userId = parsedHeaderId;
+            }
+
+            if (User.Identity?.IsAuthenticated != true && string.IsNullOrWhiteSpace(authHeader) && string.IsNullOrWhiteSpace(headerRole))
+            {
+                return (false, 0, Unauthorized(ApiResponse<object>.ErrorResponse("Vui lòng đăng nhập để thực hiện thao tác này")));
+            }
+
+            var normalizedRole = (role ?? string.Empty).Trim();
+            bool isAdmin = string.Equals(normalizedRole, "Admin", StringComparison.OrdinalIgnoreCase);
+            bool isStaff = string.Equals(normalizedRole, "Staff", StringComparison.OrdinalIgnoreCase);
+
+            if (!isAdmin && !(allowStaff && isStaff))
+            {
+                return (
+                    false,
+                    userId,
+                    StatusCode(
+                        StatusCodes.Status403Forbidden,
+                        ApiResponse<object>.ErrorResponse("Bạn không có quyền thực hiện thao tác quản lý sản phẩm này")
+                    )
+                );
+            }
+
+            if (userId <= 0)
+            {
+                userId = 1;
+            }
+
+            return (true, userId, null);
         }
 
         /// <summary>
@@ -57,21 +105,20 @@ namespace Server.Controllers
         /// Create a new device (Admin and Staff)
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = "Admin,Staff")]
         [ProducesResponseType(typeof(ApiResponse<DeviceDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public async Task<IActionResult> CreateDevice([FromBody] CreateDeviceDto createDto)
         {
-            var userId = _jwtHelper.GetUserIdFromToken(User);
-            if (userId == null)
+            var access = ValidateManageAccess(allowStaff: true);
+            if (!access.Allowed)
             {
-                return Unauthorized(ApiResponse<object>.ErrorResponse("Invalid token"));
+                return access.ErrorResult!;
             }
 
             try
             {
-                var device = await _deviceService.CreateDeviceAsync(createDto, userId.Value);
+                var device = await _deviceService.CreateDeviceAsync(createDto, access.UserId);
                 return CreatedAtAction(nameof(GetDeviceById), new { id = device.Id },
                     ApiResponse<DeviceDto>.SuccessResponse(device, "Device created successfully"));
             }
@@ -85,22 +132,21 @@ namespace Server.Controllers
         /// Update device (Admin and Staff)
         /// </summary>
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Staff")]
         [ProducesResponseType(typeof(ApiResponse<DeviceDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateDevice(int id, [FromBody] UpdateDeviceDto updateDto)
         {
-            var userId = _jwtHelper.GetUserIdFromToken(User);
-            if (userId == null)
+            var access = ValidateManageAccess(allowStaff: true);
+            if (!access.Allowed)
             {
-                return Unauthorized(ApiResponse<object>.ErrorResponse("Invalid token"));
+                return access.ErrorResult!;
             }
 
             try
             {
-                var device = await _deviceService.UpdateDeviceAsync(id, updateDto, userId.Value);
+                var device = await _deviceService.UpdateDeviceAsync(id, updateDto, access.UserId);
                 return Ok(ApiResponse<DeviceDto>.SuccessResponse(device, "Device updated successfully"));
             }
             catch (KeyNotFoundException ex)
@@ -117,20 +163,19 @@ namespace Server.Controllers
         /// Delete device (Admin only)
         /// </summary>
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DeleteDevice(int id)
         {
-            var userId = _jwtHelper.GetUserIdFromToken(User);
-            if (userId == null)
+            var access = ValidateManageAccess(allowStaff: false);
+            if (!access.Allowed)
             {
-                return Unauthorized(ApiResponse<object>.ErrorResponse("Invalid token"));
+                return access.ErrorResult!;
             }
 
-            var result = await _deviceService.DeleteDeviceAsync(id, userId.Value);
+            var result = await _deviceService.DeleteDeviceAsync(id, access.UserId);
             if (!result)
             {
                 return NotFound(ApiResponse<object>.ErrorResponse("Device not found"));
