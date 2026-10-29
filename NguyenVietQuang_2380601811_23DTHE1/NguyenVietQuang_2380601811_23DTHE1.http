@@ -1,6 +1,0 @@
-@NguyenVietQuang_2380601811_23DTHE1_HostAddress = http://localhost:5057
-
-GET {{NguyenVietQuang_2380601811_23DTHE1_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
