@@ -16,7 +16,16 @@ class SpeechTranslationService {
   String lastText = '';
 
   Future<bool> initialize() async {
-    initialized = await speechToText.initialize();
+    initialized = await speechToText.initialize(
+      onError: (error) {
+        listening = false;
+      },
+      onStatus: (status) {
+        if (status == 'notListening' || status == 'done') {
+          listening = false;
+        }
+      },
+    );
     return initialized;
   }
 
@@ -43,7 +52,7 @@ class SpeechTranslationService {
     lastText = '';
 
     await speechToText.listen(
-      localeId: sourceLanguage,
+      localeId: sourceLanguage.contains('-') ? sourceLanguage : '_VN',
       listenMode: ListenMode.dictation,
       partialResults: true,
       onResult: (speechResult) {
@@ -81,7 +90,6 @@ class SpeechTranslationService {
                   sourceLanguage: sourceLanguage,
                   targetLanguage: targetLanguage,
                   createdAt: DateTime.now(),
-                  isFinal: speechResult.finalResult,
                 ),
               );
             } catch (error) {

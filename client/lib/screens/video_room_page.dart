@@ -29,7 +29,7 @@ class _VideoRoomPageState extends State<VideoRoomPage> {
 
   bool connecting = true;
   bool microphoneEnabled = true;
-  bool cameraEnabled = true;
+  bool cameraEnabled = false;
 
   List<RemoteParticipant> remoteParticipants = [];
 

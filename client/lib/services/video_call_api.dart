@@ -77,7 +77,10 @@ class VideoCallApi {
     Map<String, dynamic> result = {};
 
     try {
-      result = jsonDecode(response.body) as Map<String, dynamic>;
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        result = decoded;
+      }
     } catch (_) {}
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -126,7 +129,11 @@ class VideoCallApi {
       },
     );
 
-    final data = result['data'] ?? result['Data'] ?? {};
+    final data = _responseData(result);
+
+    if (data.isEmpty || (data['roomName'] ?? data['RoomName']) == null) {
+      throw Exception('Server khong tra ve thong tin phong vua tao');
+    }
 
     return VideoCallRoom.fromJson(
       Map<String, dynamic>.from(data),
@@ -148,11 +155,21 @@ class VideoCallApi {
       },
     );
 
-    final data = result['data'] ?? result['Data'] ?? {};
+    final data = _responseData(result);
 
-    return VideoCallToken.fromJson(
-      Map<String, dynamic>.from(data),
-    );
+    final callToken = VideoCallToken.fromJson(data);
+    if (callToken.token.isEmpty || callToken.wsUrl.isEmpty || callToken.roomName.isEmpty) {
+      throw Exception('Server khong tra ve du token hoac dia chi LiveKit');
+    }
+
+    return callToken;
+  }
+
+  Map<String, dynamic> _responseData(Map<String, dynamic> result) {
+    final data = result['data'] ?? result['Data'] ?? result;
+    return data is Map
+        ? Map<String, dynamic>.from(data)
+        : <String, dynamic>{};
   }
 
   Future<void> leaveRoom({
@@ -175,7 +192,11 @@ class VideoCallApi {
       'rooms/${Uri.encodeComponent(roomName)}',
     );
 
-    final data = result['data'] ?? result['Data'] ?? {};
+    final data = _responseData(result);
+
+    if (data.isEmpty || (data['roomName'] ?? data['RoomName']) == null) {
+      throw Exception('Server khong tra ve thong tin phong vua tao');
+    }
 
     return VideoCallRoom.fromJson(
       Map<String, dynamic>.from(data),

@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 
 import 'package:camera/camera.dart';
@@ -33,6 +33,7 @@ class _RealtimeTranslationPageState extends State<RealtimeTranslationPage>
   bool liveTranslating = false;
   bool processingFrame = false;
   bool loadingPhoto = false;
+  bool disposing = false;
 
   String sourceLanguage = 'vi';
   String targetLanguage = 'en';
@@ -154,7 +155,12 @@ class _RealtimeTranslationPageState extends State<RealtimeTranslationPage>
       );
       final text = recognized.text.trim();
 
-      if (text.isEmpty) return;
+      if (text.isEmpty) {
+        if (addToHistory && mounted) {
+          showMessage('Khong nhan dien duoc van ban', error: true);
+        }
+        return;
+      }
 
       final translated = await translationService.translate(
         text: text,

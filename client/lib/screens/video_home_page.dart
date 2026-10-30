@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../models/video_call_room.dart';
 import '../models/video_call_token.dart';
@@ -79,10 +79,10 @@ class _VideoHomePageState extends State<VideoHomePage> {
     final description = TextEditingController();
     final maxParticipants = TextEditingController(text: '10');
 
-    final created = await showDialog<bool>(
+    final createdRoom = await showDialog<VideoCallRoom>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Tạo phòng video'),
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Tao phong video'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -90,7 +90,7 @@ class _VideoHomePageState extends State<VideoHomePage> {
               TextField(
                 controller: name,
                 decoration: const InputDecoration(
-                  labelText: 'Tên phòng',
+                  labelText: 'Ten phong',
                   hintText: 'phong-ho-tro-ky-thuat',
                 ),
               ),
@@ -99,14 +99,14 @@ class _VideoHomePageState extends State<VideoHomePage> {
                 controller: maxParticipants,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  labelText: 'Số người tối đa',
+                  labelText: 'So nguoi toi da',
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: description,
                 decoration: const InputDecoration(
-                  labelText: 'Mô tả phòng',
+                  labelText: 'Mo ta phong',
                 ),
               ),
             ],
@@ -114,8 +114,8 @@ class _VideoHomePageState extends State<VideoHomePage> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy'),
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Huy'),
           ),
           FilledButton(
             onPressed: () async {
@@ -123,28 +123,28 @@ class _VideoHomePageState extends State<VideoHomePage> {
               final limit = int.tryParse(maxParticipants.text) ?? 10;
 
               if (roomName.isEmpty) {
-                showMessage('Vui lòng nhập tên phòng', error: true);
+                showMessage('Vui long nhap ten phong', error: true);
                 return;
               }
 
               if (limit < 2 || limit > 100) {
-                showMessage('Số người phải từ 2 đến 100', error: true);
+                showMessage('So nguoi phai tu 2 den 100', error: true);
                 return;
               }
 
               try {
-                await api.createRoom(
+                final room = await api.createRoom(
                   roomName: roomName,
                   maxParticipants: limit,
                   callType: 'support',
                   description: description.text.trim(),
                 );
 
-                if (context.mounted) {
-                  Navigator.pop(context, true);
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop(room);
                 }
               } catch (error) {
-                if (context.mounted) {
+                if (dialogContext.mounted) {
                   showMessage(
                     error.toString().replaceFirst('Exception: ', ''),
                     error: true,
@@ -152,7 +152,7 @@ class _VideoHomePageState extends State<VideoHomePage> {
                 }
               }
             },
-            child: const Text('Tạo phòng'),
+            child: const Text('Tao phong'),
           ),
         ],
       ),
@@ -162,12 +162,36 @@ class _VideoHomePageState extends State<VideoHomePage> {
     description.dispose();
     maxParticipants.dispose();
 
-    if (created == true) {
+    if (!mounted || createdRoom == null) return;
+
+    try {
+      final callToken = await api.joinRoom(
+        roomName: createdRoom.roomName,
+        participantName: widget.userName ?? 'Nguoi dung',
+        isAudioOnly: false,
+      );
+
+      if (!mounted) return;
+
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => VideoRoomPage(
+            api: api,
+            callToken: callToken,
+          ),
+        ),
+      );
+
       await loadRooms();
-      showMessage('Tạo phòng video thành công');
+    } catch (error) {
+      if (mounted) {
+        showMessage(
+          error.toString().replaceFirst('Exception: ', ''),
+          error: true,
+        );
+      }
     }
   }
-
   Future<void> joinRoom(VideoCallRoom room) async {
     try {
       final callToken = await api.joinRoom(
