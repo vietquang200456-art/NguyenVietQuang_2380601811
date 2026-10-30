@@ -7,6 +7,7 @@ import 'realtime_translation_page.dart';
 import 'device_management_page.dart';
 import 'video_home_page.dart';
 import '../services/device_api.dart';
+import 'settings_page.dart';
 
 enum AuthMode {
   login,
@@ -375,6 +376,11 @@ class UserHomePage extends StatelessWidget {
         title: const Text('Child Devices'),
         actions: [
           IconButton(
+            tooltip: 'Cài đặt',
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SettingsPage(initialName: userName))),
+            icon: const Icon(Icons.settings_rounded),
+          ),
+          IconButton(
             tooltip: 'Đăng xuất',
             onPressed: () {
               Navigator.pushAndRemoveUntil(
@@ -458,6 +464,8 @@ class UserHomePage extends StatelessWidget {
     );
   }
 }
+
+
 
 
 
